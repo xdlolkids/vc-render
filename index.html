@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Lightweight Voice Call</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 400px;
+            width: 100%;
+            background: #2d2d2d;
+            border-radius: 24px;
+            padding: 32px 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border: 1px solid #404040;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #b0b0b0;
+            margin-bottom: 32px;
+            font-size: 14px;
+        }
+
+        .room-section {
+            margin-bottom: 24px;
+        }
+
+        .room-display {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            border: 2px dashed #404040;
+            margin-bottom: 20px;
+        }
+
+        .room-code {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: #4CAF50;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+
+        .room-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        input {
+            flex: 1;
+            padding: 14px 16px;
+            background: #1a1a1a;
+            border: 1px solid #404040;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            background: #222;
+        }
+
+        input::placeholder {
+            color: #666;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #45a049;
+        }
+
+        button:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: #333;
+            border-color: #555;
+            color: #fff;
+        }
+
+        button.secondary:hover {
+            background: #3d3d3d;
+        }
+
+        button.danger {
+            background: #dc3545;
+            border-color: #c82333;
+        }
+
+        button.danger:hover {
+            background: #c82333;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .call-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 24px 0;
+        }
+
+        .call-controls button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 12px;
+            border-radius: 12px;
+            background: #1a1a1a;
+            margin: 16px 0;
+            font-size: 14px;
+            color: #b0b0b0;
+            border: 1px solid #333;
+        }
+
+        .status.connected {
+            background: #1e3a2e;
+            color: #4CAF50;
+            border-color: #4CAF50;
+        }
+
+        .status.waiting {
+            background: #332e1e;
+            color: #ffc107;
+            border-color: #ffc107;
+        }
+
+        .logs {
+            margin-top: 24px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 12px;
+            font-family: monospace;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+
+        .log-entry {
+            color: #888;
+            padding: 4px 0;
+            border-bottom: 1px solid #2a2a2a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .microphone-permission {
+            font-size: 12px;
+            color: #ffc107;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .flex {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Voice Call</h1>
+        <div class="subtitle">Peer-to-peer voice rooms</div>
+
+        <!-- Room Creation Section -->
+        <div id="roomCreation" class="room-section">
+            <div class="flex">
+                <button id="createRoomBtn" class="secondary" style="flex: 1;">Create New Room</button>
+            </div>
+            
+            <div style="margin: 16px 0; text-align: center; color: #666;">or</div>
+            
+            <div class="input-group">
+                <input type="text" id="roomCodeInput" placeholder="Enter room code" maxlength="6" style="text-transform: uppercase;">
+                <button id="joinRoomBtn">Join Room</button>
+            </div>
+        </div>
+
+        <!-- Active Call Section -->
+        <div id="activeCall" class="hidden">
+            <div class="room-display">
+                <div class="room-label">ROOM CODE</div>
+                <div class="room-code" id="currentRoomCode">---</div>
+                <div class="room-label" id="userRole">Host</div>
+            </div>
+
+            <div class="status" id="connectionStatus">
+                Waiting for peer to join...
+            </div>
+
+            <div class="call-controls">
+                <button id="muteBtn" class="secondary" title="Mute/Unmute">
+                    🎤
+                </button>
+                <button id="leaveBtn" class="danger" title="Leave Room">
+                    📞
+                </button>
+            </div>
+
+            <div class="microphone-permission" id="micPermission">
+                Requesting microphone access...
+            </div>
+        </div>
+
+        <!-- Debug Logs -->
+        <div class="logs" id="logs">
+            <div class="log-entry">System ready...</div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const STUN_SERVERS = [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+        ];
+
+        // State management
+        let ws = null;
+        let peerConnection = null;
+        let localStream = null;
+        let remoteAudio = new Audio();
+        let roomCode = null;
+        let userRole = null;
+        let isMuted = false;
+        let isPeerConnected = false;
+        let connectionAttempts = 0;
+
+        // DOM elements
+        const roomCreation = document.getElementById('roomCreation');
+        const activeCall = document.getElementById('activeCall');
+        const currentRoomCode = document.getElementById('currentRoomCode');
+        const userRoleEl = document.getElementById('userRole');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const micPermission = document.getElementById('micPermission');
+        const logsEl = document.getElementById('logs');
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        const joinRoomBtn = document.getElementById('joinRoomBtn');
+        const roomCodeInput = document.getElementById('roomCodeInput');
+        const muteBtn = document.getElementById('muteBtn');
+        const leaveBtn = document.getElementById('leaveBtn');
+
+        // Utility: Add log entry
+        function addLog(message) {
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsEl.appendChild(logEntry);
+            logsEl.scrollTop = logsEl.scrollHeight;
+            console.log(message);
+        }
+
+        // Utility: Get WebSocket URL (auto-switches between ws/wss)
+        function getWebSocketUrl() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            return `${protocol}//${host}`;
+        }
+
+        // Initialize WebSocket connection
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) return;
+
+            const wsUrl = getWebSocketUrl();
+            addLog(`Connecting to WebSocket: ${wsUrl}`);
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                addLog('WebSocket connected');
+                connectionAttempts = 0;
+            };
+
+            ws.onclose = () => {
+                addLog('WebSocket disconnected');
+                handleDisconnect();
+                
+                // Attempt to reconnect
+                if (connectionAttempts < 5) {
+                    connectionAttempts++;
+                    setTimeout(connectWebSocket, 2000);
+                }
+            };
+
+            ws.onerror = (error) => {
+                addLog('WebSocket error');
+            };
+
+            ws.onmessage = handleSignalingMessage;
+        }
+
+        // Handle incoming signaling messages
+        function handleSignalingMessage(event) {
+            const message = JSON.parse(event.data);
+            addLog(`Received: ${message.type}`);
+
+            switch (message.type) {
+                case 'room-created':
+                    roomCode = message.roomCode;
+                    userRole = message.role;
+                    showActiveCall();
+                    createPeerConnection();
+                    break;
+
+                case 'room-joined':
+                    roomCode = message.roomCode;
+                    userRole = message.role;
+                    showActiveCall();
+                    createPeerConnection();
+                    break;
+
+                case 'peer-joined':
+                    connectionStatus.textContent = 'Peer joined! Establishing connection...';
+                    connectionStatus.className = 'status connected';
+                    isPeerConnected = true;
+                    
+                    // Host creates and sends offer
+                    if (userRole === 'host' && peerConnection) {
+                        createAndSendOffer();
+                    }
+                    break;
+
+                case 'offer':
+                    if (message.senderRole === 'host' && userRole === 'peer') {
+                        handleOffer(message);
+                    }
+                    break;
+
+                case 'answer':
+                    if (message.senderRole === 'peer' && userRole === 'host') {
+                        handleAnswer(message);
+                    }
+                    break;
+
+                case 'ice-candidate':
+                    handleIceCandidate(message);
+                    break;
+
+                case 'peer-left':
+                case 'host-left':
+                    connectionStatus.textContent = 'Peer left the room';
+                    connectionStatus.className = 'status';
+                    isPeerConnected = false;
+                    cleanupPeerConnection();
+                    createPeerConnection(); // Recreate for new peer
+                    break;
+
+                case 'error':
+                    alert(message.message);
+                    break;
+            }
+        }
+
+        // Create PeerConnection
+        async function createPeerConnection() {
+            addLog('Creating peer connection...');
+            
+            peerConnection = new RTCPeerConnection({ iceServers: STUN_SERVERS });
+
+            // Handle ICE candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    addLog('Sending ICE candidate');
+                    ws.send(JSON.stringify({
+                        type: 'ice-candidate',
+                        candidate: event.candidate
+                    }));
+                }
+            };
+
+            // Log connection state changes
+            peerConnection.onconnectionstatechange = () => {
+                addLog(`Connection state: ${peerConnection.connectionState}`);
+                if (peerConnection.connectionState === 'connected') {
+                    connectionStatus.textContent = 'Connected - Voice active';
+                    connectionStatus.className = 'status connected';
+                }
+            };
+
+            peerConnection.oniceconnectionstatechange = () => {
+                addLog(`ICE state: ${peerConnection.iceConnectionState}`);
+            };
+
+            // Handle incoming audio track
+            peerConnection.ontrack = (event) => {
+                addLog('Received remote track');
+                remoteAudio.srcObject = event.streams[0];
+                remoteAudio.play().catch(e => addLog('Autoplay failed: ' + e));
+            };
+
+            // Get local audio stream
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                addLog('Microphone access granted');
+                micPermission.textContent = '✓ Microphone active';
+                micPermission.style.color = '#4CAF50';
+                
+                // Add local track to peer connection
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                // Update mute button state
+                isMuted = false;
+                muteBtn.innerHTML = '🎤';
+                muteBtn.classList.remove('secondary');
+                muteBtn.classList.add('secondary');
+                
+            } catch (error) {
+                addLog('Microphone error: ' + error.message);
+                micPermission.textContent = '✗ Microphone access denied';
+                micPermission.style.color = '#dc3545';
+            }
+        }
+
+        // Create and send offer (host only)
+        async function createAndSendOffer() {
+            try {
+                addLog('Creating offer...');
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                ws.send(JSON.stringify({
+                    type: 'offer',
+                    offer: offer
+                }));
+                addLog('Offer sent');
+            } catch (error) {
+                addLog('Error creating offer: ' + error.message);
+            }
+        }
+
+        // Handle incoming offer (peer only)
+        async function handleOffer(message) {
+            try {
+                addLog('Received offer, creating answer...');
+                await peerConnection.setRemoteDescription(message.offer);
+                
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                
+                ws.send(JSON.stringify({
+                    type: 'answer',
+                    answer: answer
+                }));
+                addLog('Answer sent');
+            } catch (error) {
+                addLog('Error handling offer: ' + error.message);
+            }
+        }
+
+        // Handle incoming answer (host only)
+        async function handleAnswer(message) {
+            try {
+                addLog('Received answer');
+                await peerConnection.setRemoteDescription(message.answer);
+            } catch (error) {
+                addLog('Error handling answer: ' + error.message);
+            }
+        }
+
+        // Handle incoming ICE candidate
+        async function handleIceCandidate(message) {
+            try {
+                if (message.candidate && peerConnection) {
+                    await peerConnection.addIceCandidate(message.candidate);
+                    addLog('ICE candidate added');
+                }
+            } catch (error) {
+                addLog('Error adding ICE candidate: ' + error.message);
+            }
+        }
+
+        // Cleanup peer connection
+        function cleanupPeerConnection() {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+        }
+
+        // Handle disconnection
+        function handleDisconnect() {
+            if (roomCode) {
+                connectionStatus.textContent = 'Disconnected - Reconnecting...';
+                connectionStatus.className = 'status';
+            }
+        }
+
+        // Show active call UI
+        function showActiveCall() {
+            roomCreation.classList.add('hidden');
+            activeCall.classList.remove('hidden');
+            currentRoomCode.textContent = roomCode;
+            userRoleEl.textContent = userRole === 'host' ? 'Host' : 'Peer';
+            connectionStatus.textContent = 'Waiting for peer to join...';
+            connectionStatus.className = 'status waiting';
+        }
+
+        // Reset to lobby
+        function resetToLobby() {
+            roomCreation.classList.remove('hidden');
+            activeCall.classList.add('hidden');
+            
+            // Clean up
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            cleanupPeerConnection();
+            remoteAudio.srcObject = null;
+            
+            // Reset state
+            roomCode = null;
+            userRole = null;
+            isPeerConnected = false;
+            
+            // Clear input
+            roomCodeInput.value = '';
+            
+            addLog('Returned to lobby');
+        }
+
+        // Toggle mute
+        function toggleMute() {
+            if (localStream) {
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    isMuted = !isMuted;
+                    audioTrack.enabled = !isMuted;
+                    muteBtn.innerHTML = isMuted ? '🔇' : '🎤';
+                    addLog(isMuted ? 'Microphone muted' : 'Microphone unmuted');
+                }
+            }
+        }
+
+        // Leave room
+        function leaveRoom() {
+            if (ws && ws.readyState === WebSocket.OPEN && roomCode) {
+                ws.send(JSON.stringify({
+                    type: 'leave-room'
+                }));
+            }
+            resetToLobby();
+        }
+
+        // Event Listeners
+        createRoomBtn.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'create-room' }));
+                addLog('Requesting room creation');
+            } else {
+                alert('WebSocket not connected. Please refresh.');
+            }
+        });
+
+        joinRoomBtn.addEventListener('click', () => {
+            const code = roomCodeInput.value.trim().toUpperCase();
+            if (code.length === 6) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'join-room',
+                        roomCode: code
+                    }));
+                    addLog(`Attempting to join room: ${code}`);
+                } else {
+                    alert('WebSocket not connected. Please refresh.');
+                }
+            } else {
+                alert('Please enter a valid 6-character room code');
+            }
+        });
+
+        muteBtn.addEventListener('click', toggleMute);
+        
+        leaveBtn.addEventListener('click', leaveRoom);
+
+        // Auto-uppercase room code input
+        roomCodeInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+
+        // Initialize WebSocket connection
+        connectWebSocket();
+
+        // Enable remote audio autoplay
+        remoteAudio.setAttribute('playsinline', '');
+        remoteAudio.setAttribute('autoplay', '');
+    </script>
+</body>
+</html>
